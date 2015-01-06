@@ -31,7 +31,7 @@
 sfr16 TMR2RL   = 0xca;                    // Timer2 reload value
 sfr16 TMR2     = 0xcc;                    // Timer2 counter
 
-#define SYSCLK             24500000    // Clock speed in Hz
+#define SYSCLK          24500000    // Clock speed in Hz
 
 sbit LED = P3^3;
 
@@ -42,6 +42,13 @@ sbit LED = P3^3;
 // 11 - Set coeff
 
 int PROG_MODE = 10;
+int MIC0_FLAG = 0; // Set to 1 when find something on MIC0
+int MIC0_LOW = 0; // Low timer
+int MIC0_HIGH = 0; // High timer
+int MIC1_FLAG = 0; // Set to 1 when find something on MIC1
+int MIC1_LOW = 0; // Low timer
+int MIC1_HIGH = 0; // High timer
+
 
 //-----------------------------------------------------------------------------
 // Function Prototypes
@@ -61,33 +68,51 @@ void Put_char_ (unsigned char);
 //-----------------------------------------------------------------------------
 void main (void)
 {
-   PCA0MD &= ~0x40;                    // Disable Watchdog timer
+	PCA0MD &= ~0x40;                    // Disable Watchdog timer
 
-   Oscillator_Init();                  // Initialize the system clock
-   Port_Init ();                       // Initialize crossbar and GPIO
-   Ext_Interrupt_Init();               // Initialize External Interrupts
-   UART_Init ();
-   Timer2_Init(SYSCLK/12/50);
+	Oscillator_Init();                  // Initialize the system clock
+	Port_Init ();                       // Initialize crossbar and GPIO
+	Ext_Interrupt_Init();               // Initialize External Interrupts
+	UART_Init ();
+	Timer2_Init(0);
 
-   EA = 1;
-   LED = 1; // Put the LED On
-   while(1)
-   {
-   		// Wait for an input
+	EA = 1;
+	LED = 1; // Put the LED On
+	while(1)
+	{
+		// Wait for an input
 		if (RI0)
 		{
 			RI0 = 0; // Reset Input
 			if (SBUF0 == 97) // Letter "a"
 			{
 				PROG_MODE = 1;
-				printf(" Test mode MIC1\r\n");
+				printf("Test mode MIC1\r\n");
 			}
 			if (SBUF0 == 98) // "b"
 			{
 				PROG_MODE = 2;
-				printf("  Test mode MIC2\r\n");
+				printf("Test mode MIC2\r\n");
+			}
+			if (SBUF0 == 114) // "r"
+			{
+				PROG_MODE = 10;
+				printf("Run Mode\r\n");
 			}
 		}
+		
+		// Print value
+		if (PROG_MODE == 10)
+		{
+			if (MIC0_FLAG == 1)
+			{
+				printf(" %d - ", MIC0_LOW);
+				printf("%d\r\n", MIC0_HIGH);
+				MIC0_FLAG = 0;
+
+			}
+		}
+		
    }
 }
 
@@ -114,7 +139,7 @@ void Port_Init (void)
 	XBR0 = 0x01; // Enable UART
 	XBR1 = 0x40;
 	P0SKIP = 0x03;
-//	P0MDOUT |= 0x10;
+	P0MDOUT |= 0x10;
 
     P3MDOUT = 0x08;
 }
@@ -135,13 +160,13 @@ void UART_Init(void)
 
 void Ext_Interrupt_Init (void)
 {
-   TCON = 0x05;                        // /INT 0 and /INT 1 are edge triggered
-                     
-   IT01CF = 0x89;	// INT0 is P0.0 and INT1 is P0.1       
+	TCON = 0x05;                        // /INT 0 and /INT 1 are edge triggered
+	IT01CF = 0x89;	// INT0 is P0.0 and INT1 is P0.1       
 
-   EX0 = 1;                            // Enable /INT0 interrupts
-   EX1 = 1;                            // Enable /INT1 interrupts
-   IE = 0xFF;
+	EX0 = 1;                            // Enable /INT0 interrupts
+	EX1 = 1;                            // Enable /INT1 interrupts
+	IE = 0xA5;
+	//IE = 0xFF;
 
 }
 
@@ -170,6 +195,12 @@ void Timer2_Init (int counts)
 //-----------------------------------------------------------------------------
 void INT0_ISR (void) interrupt 0
 {
+	if (PROG_MODE == 10)
+	{
+		MIC0_LOW = TMR2L;
+		MIC0_HIGH = TMR2H;
+		MIC0_FLAG = 1;
+	}
 	if (PROG_MODE == 1)
 	{
 		LED = ~LED;
