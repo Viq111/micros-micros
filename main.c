@@ -42,13 +42,23 @@ sbit LED = P3^3;
 // 11 - Set coeff
 
 int PROG_MODE = 10;
+
+int MIC_FLAG = 0;
+// 0 when none has listen
+// 1 when MIC1 have smth
+// 2 when MIC2 have smth
+// 3 when both have smth and MIC1 first
+// 4 when both have smth and MIC2 first
+int DIFF_TIME = 0;
+
+/*
 int MIC0_FLAG = 0; // Set to 1 when find something on MIC0
 int MIC0_LOW = 0; // Low timer
 int MIC0_HIGH = 0; // High timer
 int MIC1_FLAG = 0; // Set to 1 when find something on MIC1
 int MIC1_LOW = 0; // Low timer
 int MIC1_HIGH = 0; // High timer
-
+*/
 
 //-----------------------------------------------------------------------------
 // Function Prototypes
@@ -60,6 +70,7 @@ void Ext_Interrupt_Init (void);        // Configure External Interrupts
 void UART_Init (void);
 void Timer2_Init (int);
 void Timer2_ISR (void);
+void wait100(void);
 
 void Put_char_ (unsigned char);
 
@@ -104,14 +115,28 @@ void main (void)
 		// Print value
 		if (PROG_MODE == 10)
 		{
-			if (MIC0_FLAG == 1)
+			if ((MIC_FLAG == 3) || (MIC_FLAG == 4))
 			{
-				printf(" %d - ", MIC0_LOW);
-				printf("%d\r\n", MIC0_HIGH);
-				MIC0_FLAG = 0;
-
+				if (MIC_FLAG == 3)
+				{
+					printf("Micro 1 first with diff: %u\r\n", DIFF_TIME);
+				}
+				if (MIC_FLAG == 4)
+				{
+					printf("Micro 2 first with diff: %u\r\n", DIFF_TIME);
+				}
+				//printf(" %d - ", MIC0_HIGH);
+				//printf("%d and ", MIC0_LOW);
+				//printf(" and ");
+				//printf(" %d - ", MIC1_HIGH);
+				//printf("%d\r\n", MIC1_LOW);
+				//printf("\r\n");
+				wait100();
+				MIC_FLAG = 0;
 			}
 		}
+		MIC_FLAG = 0;
+		wait100();
 		
    }
 }
@@ -174,7 +199,7 @@ void Timer2_Init (int counts)
 {
    TMR2CN  = 0x00;                        // Stop Timer2; Clear TF2;
                                           // use SYSCLK/12 as timebase
-   //CKCON  &= ~0x60;                       // Timer2 clocked based on T2XCLK;
+   CKCON  &= ~0x60;                       // Timer2 clocked based on T2XCLK;
 
    TMR2RL  = -counts;                     // Init reload values
    TMR2    = 0xffff;                      // set to reload immediately
@@ -197,9 +222,17 @@ void INT0_ISR (void) interrupt 0
 {
 	if (PROG_MODE == 10)
 	{
-		MIC0_LOW = TMR2L;
-		MIC0_HIGH = TMR2H;
-		MIC0_FLAG = 1;
+		if (MIC_FLAG == 0)
+		{
+			TMR2 = 0xffff; // Reset counter
+			MIC_FLAG = 1;
+		}
+		if (MIC_FLAG == 2)
+		{
+			//DIFF_TIME = TMR2;
+			DIFF_TIME = TMR2;
+			MIC_FLAG = 4;
+		}
 	}
 	if (PROG_MODE == 1)
 	{
@@ -209,6 +242,20 @@ void INT0_ISR (void) interrupt 0
 
 void INT1_ISR (void) interrupt 2
 {
+	if (PROG_MODE == 10)
+	{
+		if (MIC_FLAG == 0)
+		{
+			TMR2 = 0xffff; // Reset counter
+			MIC_FLAG = 2;
+		}
+		if (MIC_FLAG == 1)
+		{
+			//DIFF_TIME = TMR2;
+			DIFF_TIME = TMR2;
+			MIC_FLAG = 3;
+		}
+	}
 	if (PROG_MODE == 2)
 	{
 		LED = ~LED;
@@ -237,5 +284,14 @@ void Put_char_(unsigned char c)
 	TI0 = 0;
 	// Send a char
 	SBUF0 = c;
+}
+
+void wait100(void)
+{
+	unsigned int i = 0;
+	for (i = 0; i < 60000; i++)
+	{
+		unsigned int j = 0;
+	}
 }
 
