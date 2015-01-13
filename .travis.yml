@@ -1,0 +1,20 @@
+language: c
+before_install:
+  - sudo apt-get update
+  - wget vianneytran.com/code/static/Keil_microC.7z
+install:
+  - sudo apt-get -y install p7zip
+  - sudo apt-get -y install wine
+  - sudo 7zr x Keil_microC.7z -o/opt/
+  - sudo chmod -R 755 /opt/Keil
+  - wine --version
+  - wine netsh # Create Wine config files
+  - a51() { wine /opt/Keil/C51/BIN/A51.exe $@; }
+  - c51() { wine /opt/Keil/C51/BIN/C51.exe $@; }
+  - bl51() { wine /opt/Keil/C51/BIN/BL51.exe $@; }
+# a51 is your Keil assembler compiler
+# c51 is your Keil compiler
+# bl51 is your Keil linker
+script:
+  - c51 main.c
+  - bl51 main.OBJ
