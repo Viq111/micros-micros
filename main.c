@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 // Micro's Micros
 //-----------------------------------------------------------------------------
-// Copyright 2014 - Hugo Serrat and Vianney Tran
+// Copyright 2015 - Hugo Serrat and Vianney Tran
 //
 // Program Description:
 //
@@ -169,6 +169,10 @@ void Port_Init (void)
     P3MDOUT = 0x08;
 }
 
+//-----------------------------------------------------------------------------
+// UART Init
+//-----------------------------------------------------------------------------
+
 void UART_Init(void)
 {
 	TH1 = -213;
@@ -195,6 +199,10 @@ void Ext_Interrupt_Init (void)
 
 }
 
+//-----------------------------------------------------------------------------
+// Timer_Init
+//-----------------------------------------------------------------------------
+
 void Timer2_Init (int counts)
 {
    TMR2CN  = 0x00;                        // Stop Timer2; Clear TF2;
@@ -210,14 +218,9 @@ void Timer2_Init (int counts)
 // Interrupt Service Routines
 //-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
-// /INT0 ISR
-//-----------------------------------------------------------------------------
-//
-// Whenever a negative edge appears on P0.0, LED1 is toggled.
-// The interrupt pending flag is automatically cleared by vectoring to the ISR
-//
-//-----------------------------------------------------------------------------
+// INT0 is wired to the first MIC
+// A flag is raised when we sense something on the mic and we either reset the counter or
+// return the diff value
 void INT0_ISR (void) interrupt 0
 {
 	if (PROG_MODE == 10)
@@ -229,7 +232,6 @@ void INT0_ISR (void) interrupt 0
 		}
 		if (MIC_FLAG == 2)
 		{
-			//DIFF_TIME = TMR2;
 			DIFF_TIME = TMR2;
 			MIC_FLAG = 4;
 		}
@@ -240,6 +242,9 @@ void INT0_ISR (void) interrupt 0
 	}
 }
 
+// INT1 is wired to the second MIC
+// A flag is raised when we sense something on the mic and we either reset the counter or
+// return the diff value
 void INT1_ISR (void) interrupt 2
 {
 	if (PROG_MODE == 10)
@@ -251,7 +256,6 @@ void INT1_ISR (void) interrupt 2
 		}
 		if (MIC_FLAG == 1)
 		{
-			//DIFF_TIME = TMR2;
 			DIFF_TIME = TMR2;
 			MIC_FLAG = 3;
 		}
@@ -262,15 +266,11 @@ void INT1_ISR (void) interrupt 2
 	}
 }
 
+// We need a Timer2 ISR because we are using the timer
+
 void Timer2_ISR (void) interrupt 5
 {
-	static unsigned int counter = 0;
-	counter += 1;
 	TF2H = 0; // clear Timer2 interrupt flag
-	if (counter >= 50)
-	{
-		counter = 0;
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -286,6 +286,7 @@ void Put_char_(unsigned char c)
 	SBUF0 = c;
 }
 
+// Wait for about 100ms
 void wait100(void)
 {
 	unsigned int i = 0;
