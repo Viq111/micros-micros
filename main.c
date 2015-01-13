@@ -89,6 +89,7 @@ void main (void)
 
 	EA = 1;
 	LED = 1; // Put the LED On
+	Put_char_('\n');
 	while(1)
 	{
 		// Wait for an input
