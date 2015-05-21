@@ -3,6 +3,8 @@
 Micros Micros is a project to turn enable any table with a touch-sensitive interface using only sound propagation.
 Required hardware is two micros. Related software is available here.
 
+[![micro_video](https://cloud.githubusercontent.com/assets/2376565/7741011/9c62b4a6-ff47-11e4-8b7c-58ae092a28a1.png)](https://vid.me/CAXX)
+
 ## Installation
 
 You first need a 8051F310 µChip. Plug the first micro to pin 0.0 and second micro to pin 0.1.
